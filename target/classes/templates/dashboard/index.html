@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard — Nexus TradeX</title>
+  <link rel="stylesheet" th:href="@{/css/app.css}"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</head>
+<body>
+<div class="layout">
+
+  <!-- Mobile top bar -->
+  <div class="mobile-topbar">
+    <button class="hamburger" id="hamburgerBtn" aria-label="Open menu">
+      <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+      </svg>
+    </button>
+    <span class="mobile-logo">⬡ Nexus TradeX</span>
+    <div class="agent-status" style="font-size:0.7rem;padding:4px 8px;">
+      <span class="status-dot"
+            th:classappend="${summary.agentStatus == 'ACTIVE'} ? 'active' : (${summary.agentStatus == 'PAUSED'} ? 'paused' : 'disconnected')"></span>
+      <span th:text="${summary.agentStatus}">—</span>
+    </div>
+  </div>
+
+  <!-- Overlay -->
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-text">⬡ Nexus TradeX</div>
+      <div class="logo-sub">Simulated Trading Platform</div>
+    </div>
+
+    <!-- MODE SELECTOR -->
+    <div class="mode-selector-wrap">
+      <div class="mode-label">View Mode</div>
+      <div class="mode-dropdown-container">
+        <button class="mode-dropdown-btn" id="modeDropdownBtn">
+          <span class="mode-icon" id="modeIcon">🟢</span>
+          <span id="modeLabel">Easy</span>
+          <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="margin-left:auto;opacity:0.6;">
+            <polyline points="6 9 12 15 18 9"/>
+          </svg>
+        </button>
+        <div class="mode-dropdown-menu" id="modeDropdownMenu">
+          <button class="mode-option active" data-mode="easy" onclick="setMode('easy')">
+            <span>🟢</span>
+            <div>
+              <div class="mode-option-title">Easy</div>
+              <div class="mode-option-desc">Win rate & profit overview</div>
+            </div>
+          </button>
+          <button class="mode-option" data-mode="training" onclick="setMode('training')">
+            <span>🔵</span>
+            <div>
+              <div class="mode-option-title">Training</div>
+              <div class="mode-option-desc">Graphs, bets & analytics</div>
+            </div>
+          </button>
+          <button class="mode-option" data-mode="expert" onclick="setMode('expert')">
+            <span>🔴</span>
+            <div>
+              <div class="mode-option-title">Expert</div>
+              <div class="mode-option-desc">Full AI controls & settings</div>
+            </div>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Main</div>
+      <a th:href="@{/dashboard}" class="nav-link active">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+          <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+        </svg>Dashboard
+      </a>
+      <a th:href="@{/trades}" class="nav-link">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+        </svg>Trade History
+      </a>
+      <!-- Analytics nav item (Training + Expert) -->
+      <a href="#analytics-section" class="nav-link mode-only training expert" id="analyticsNavLink">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>
+          <line x1="6" y1="20" x2="6" y2="14"/>
+        </svg>Analytics
+      </a>
+      <a th:href="@{/agent/settings}" class="nav-link">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/>
+        </svg>Agent Settings
+      </a>
+      <div class="nav-section-label" sec:authorize="hasRole('ADMIN')">Admin</div>
+      <a th:href="@{/admin}" class="nav-link" sec:authorize="hasRole('ADMIN')">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>User Management
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-chip">
+        <div class="user-avatar" th:text="${#strings.substring(user.username,0,1).toUpperCase()}">A</div>
+        <div>
+          <div class="user-name" th:text="${user.username}">username</div>
+          <div class="user-role" th:text="${user.role}">ROLE</div>
+        </div>
+      </div>
+      <a th:href="@{/auth/logout}" class="btn btn-ghost" style="width:100%;margin-top:10px;justify-content:center;">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+          <polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+        </svg>Sign Out
+      </a>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <div class="topbar-title">Dashboard</div>
+        <div class="text-xs text-muted" th:text="'Agent: ' + ${summary.agentName}"></div>
+      </div>
+      <div class="topbar-actions">
+        <!-- Mode badge in topbar -->
+        <div class="mode-badge" id="topbarModeBadge">
+          <span id="topbarModeIcon">🟢</span>
+          <span id="topbarModeText">Easy Mode</span>
+        </div>
+        <div class="agent-status">
+          <span class="status-dot"
+                th:classappend="${summary.agentStatus == 'ACTIVE'} ? 'active' : (${summary.agentStatus == 'PAUSED'} ? 'paused' : 'disconnected')"></span>
+          <span th:text="${summary.agentStatus}">ACTIVE</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-content fade-in">
+
+      <div th:if="${message}" class="alert alert-success" th:text="${message}"></div>
+
+      <!-- ===== EASY MODE ===== -->
+      <div id="easyMode" class="mode-panel">
+        <div class="easy-hero">
+          <div class="easy-hero-card cyan">
+            <div class="easy-hero-icon">💰</div>
+            <div class="easy-hero-label">Total Profit / Loss</div>
+            <div class="easy-hero-value mono"
+                 th:classappend="${summary.totalProfitLoss != null and summary.totalProfitLoss.compareTo(T(java.math.BigDecimal).ZERO) >= 0} ? 'pnl-pos' : 'pnl-neg'"
+                 th:text="${summary.totalProfitLoss != null} ? (${summary.totalProfitLoss.compareTo(T(java.math.BigDecimal).ZERO) >= 0} ? '+$' : '-$') + ${#numbers.formatDecimal(summary.totalProfitLoss.abs(), 1, 2)} : '$0.00'">$0.00</div>
+            <div class="easy-hero-sub" th:text="'Started with $' + ${#numbers.formatDecimal(summary.initialDeposit, 1, 2)}"></div>
+          </div>
+          <div class="easy-hero-card green">
+            <div class="easy-hero-icon">🎯</div>
+            <div class="easy-hero-label">Win Rate</div>
+            <div class="easy-hero-value" th:text="${summary.winRate} + '%'">0%</div>
+            <div class="easy-hero-sub" th:text="${summary.winningTrades} + ' wins out of ' + ${summary.closedTrades} + ' trades'"></div>
+          </div>
+          <div class="easy-hero-card purple">
+            <div class="easy-hero-icon">🏦</div>
+            <div class="easy-hero-label">Current Balance</div>
+            <div class="easy-hero-value mono" th:text="'$' + ${#numbers.formatDecimal(summary.totalBankroll, 1, 2)}">$0.00</div>
+            <div class="easy-hero-sub">Virtual bankroll</div>
+          </div>
+        </div>
+        <!-- Simple status message -->
+        <div class="easy-status-card">
+          <div class="easy-status-icon"
+               th:text="${summary.totalProfitLoss != null and summary.totalProfitLoss.compareTo(T(java.math.BigDecimal).ZERO) >= 0} ? '📈' : '📉'">📊</div>
+          <div>
+            <div class="easy-status-title"
+                 th:text="${summary.agentStatus == 'ACTIVE'} ? 'Your AI agent is actively trading' : 'Agent is currently paused'">Agent Status</div>
+            <div class="easy-status-sub" th:text="${summary.totalTrades} + ' total trades · ' + ${summary.pendingApprovalTrades} + ' awaiting your approval'"></div>
+          </div>
+          <a th:href="@{/agent/settings}" class="btn btn-primary" style="margin-left:auto;white-space:nowrap;">Manage Agent</a>
+        </div>
+      </div>
+
+      <!-- ===== TRAINING MODE ===== -->
+      <div id="trainingMode" class="mode-panel" style="display:none;">
+        <!-- Stats grid -->
+        <div class="stats-grid mb-4">
+          <div class="stat-card cyan-accent">
+            <div class="stat-label">Virtual Bankroll</div>
+            <div class="stat-value mono" th:text="'$' + ${#numbers.formatDecimal(summary.totalBankroll, 1, 2)}">$0.00</div>
+            <div class="stat-sub" th:text="'Started with $' + ${#numbers.formatDecimal(summary.initialDeposit, 1, 2)}"></div>
+          </div>
+          <div class="stat-card"
+               th:classappend="${summary.totalProfitLoss != null and summary.totalProfitLoss.compareTo(T(java.math.BigDecimal).ZERO) >= 0} ? 'green-accent' : 'red-accent'">
+            <div class="stat-label">Total P&amp;L</div>
+            <div class="stat-value mono"
+                 th:classappend="${summary.totalProfitLoss != null and summary.totalProfitLoss.compareTo(T(java.math.BigDecimal).ZERO) >= 0} ? 'pnl-pos' : 'pnl-neg'"
+                 th:text="${summary.totalProfitLoss != null} ? (${summary.totalProfitLoss.compareTo(T(java.math.BigDecimal).ZERO) >= 0} ? '+$' : '-$') + ${#numbers.formatDecimal(summary.totalProfitLoss.abs(), 1, 2)} : '$0.00'">
+              $0.00
+            </div>
+            <div class="stat-sub">Realized (closed trades)</div>
+          </div>
+          <div class="stat-card yellow-accent">
+            <div class="stat-label">Win Rate</div>
+            <div class="stat-value" th:text="${summary.winRate} + '%'">0%</div>
+            <div class="stat-sub" th:text="${summary.winningTrades} + ' wins / ' + ${summary.closedTrades} + ' closed'"></div>
+          </div>
+          <div class="stat-card purple-accent">
+            <div class="stat-label">Total Trades</div>
+            <div class="stat-value" th:text="${summary.totalTrades}">0</div>
+            <div class="stat-sub" th:text="${summary.pendingApprovalTrades} + ' awaiting approval'"></div>
+          </div>
+        </div>
+
+        <!-- Training charts row -->
+        <div class="charts-row mb-4">
+          <div class="card chart-card">
+            <div class="card-header">
+              <h3 class="card-title">P&amp;L Over Time</h3>
+              <span class="badge badge-cyan">30 Days</span>
+            </div>
+            <div style="padding:16px;">
+              <canvas id="trainingPnlChart" height="180"></canvas>
+            </div>
+          </div>
+          <div class="card chart-card">
+            <div class="card-header">
+              <h3 class="card-title">Win / Loss Distribution</h3>
+            </div>
+            <div style="padding:16px;display:flex;align-items:center;justify-content:center;height:220px;">
+              <canvas id="trainingWinLossChart" width="200" height="200"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pending approvals -->
+        <div th:if="${not #lists.isEmpty(summary.pendingSuggestions)}" class="mb-4">
+          <div class="card-header" style="background:var(--surface);border:1px solid rgba(245,158,11,0.3);border-radius:var(--radius-lg) var(--radius-lg) 0 0;">
+            <h3 style="display:flex;align-items:center;gap:8px;">
+              <span class="badge badge-yellow" th:text="${#lists.size(summary.pendingSuggestions)} + ' PENDING'">0 PENDING</span>
+              AI Trade Suggestions — Awaiting Your Approval
+            </h3>
+          </div>
+          <div style="border:1px solid rgba(245,158,11,0.15);border-top:none;border-radius:0 0 var(--radius-lg) var(--radius-lg);padding:14px;background:var(--surface);">
+            <div th:each="trade : ${summary.pendingSuggestions}">
+              <div class="pending-card">
+                <div class="flex items-center justify-between" style="margin-bottom:10px;">
+                  <div class="flex items-center gap-2">
+                    <span class="market-icon"
+                          th:classappend="${trade.marketType == 'CRYPTO'} ? 'crypto' : (${trade.marketType == 'STOCK'} ? 'stock' : 'poly')"
+                          th:text="${trade.marketType == 'CRYPTO'} ? '₿' : (${trade.marketType == 'STOCK'} ? '↗' : '◈')"></span>
+                    <div>
+                      <div style="font-weight:700;font-size:0.9rem;" th:text="${trade.market}">BTC/USD</div>
+                      <div class="text-xs text-muted" th:text="${trade.marketType}">CRYPTO</div>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <span class="badge" th:classappend="${trade.type == 'BUY'} ? 'badge-green' : 'badge-red'" th:text="${trade.type}">BUY</span>
+                    <span class="mono text-sm" th:text="'$' + ${#numbers.formatDecimal(trade.amount, 1, 2)}">$0</span>
+                  </div>
+                </div>
+                <div style="margin-bottom:12px;">
+                  <div class="text-xs text-muted" style="margin-bottom:4px;">AI REASONING</div>
+                  <div style="font-size:0.83rem;color:var(--text);line-height:1.5;" th:text="${trade.aiReason}">reason</div>
+                </div>
+                <div class="flex items-center justify-between" style="flex-wrap:wrap;gap:10px;">
+                  <div class="confidence-bar" style="flex:1;max-width:220px;">
+                    <span class="text-xs text-muted">Confidence</span>
+                    <div class="confidence-track">
+                      <div class="confidence-fill" th:style="'width:' + ${trade.aiConfidence} + '%'"></div>
+                    </div>
+                    <span class="text-xs mono" th:text="${trade.aiConfidence} + '%'">0%</span>
+                  </div>
+                  <div class="flex gap-2">
+                    <form th:action="@{/trades/{id}/approve(id=${trade.id})}" method="post" style="display:inline;">
+                      <button type="submit" class="btn btn-success btn-sm">✓ Approve</button>
+                    </form>
+                    <form th:action="@{/trades/{id}/reject(id=${trade.id})}" method="post" style="display:inline;">
+                      <button type="submit" class="btn btn-danger btn-sm">✗ Reject</button>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent trades table -->
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">Recent Trades</h3>
+            <a th:href="@{/trades}" class="btn btn-ghost btn-sm">View All →</a>
+          </div>
+          <div th:if="${#lists.isEmpty(summary.recentTrades)}" style="padding:40px;text-align:center;color:var(--muted);">
+            <div style="font-size:2.5rem;margin-bottom:10px;">📊</div>
+            <div style="font-weight:600;">No trades yet</div>
+          </div>
+          <div th:if="${not #lists.isEmpty(summary.recentTrades)}" class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Market</th><th>Type</th><th>Amount</th><th>Entry</th><th>Exit</th><th>P&amp;L</th><th>Status</th><th>Date</th></tr>
+              </thead>
+              <tbody>
+                <tr th:each="trade : ${summary.recentTrades}">
+                  <td>
+                    <div class="flex items-center gap-2">
+                      <span class="market-icon"
+                            th:classappend="${trade.marketType == 'CRYPTO'} ? 'crypto' : (${trade.marketType == 'STOCK'} ? 'stock' : 'poly')"
+                            th:text="${trade.marketType == 'CRYPTO'} ? '₿' : (${trade.marketType == 'STOCK'} ? '↗' : '◈')"></span>
+                      <span style="font-weight:600;" th:text="${trade.market}">BTC</span>
+                    </div>
+                  </td>
+                  <td><span class="badge" th:classappend="${trade.type == 'BUY'} ? 'badge-green' : 'badge-red'" th:text="${trade.type}">BUY</span></td>
+                  <td class="mono" th:text="'$' + ${#numbers.formatDecimal(trade.amount, 1, 2)}">$0</td>
+                  <td class="mono text-muted" th:text="${trade.entryPrice != null} ? '$' + ${#numbers.formatDecimal(trade.entryPrice, 1, 4)} : '—'">—</td>
+                  <td class="mono text-muted" th:text="${trade.exitPrice != null} ? '$' + ${#numbers.formatDecimal(trade.exitPrice, 1, 4)} : '—'">—</td>
+                  <td>
+                    <span th:if="${trade.profitLoss != null}"
+                          th:classappend="${trade.profitLoss.compareTo(T(java.math.BigDecimal).ZERO) >= 0} ? 'pnl-pos' : 'pnl-neg'"
+                          th:text="${trade.profitLoss.compareTo(T(java.math.BigDecimal).ZERO) >= 0} ? '+$' + ${#numbers.formatDecimal(trade.profitLoss, 1, 2)} : '-$' + ${#numbers.formatDecimal(trade.profitLoss.abs(), 1, 2)}">
+                    </span>
+                    <span th:if="${trade.profitLoss == null}" class="text-muted">Open</span>
+                  </td>
+                  <td>
+                    <span class="badge"
+                          th:classappend="${trade.status == 'CLOSED'} ? (${trade.profitLoss != null and trade.profitLoss.compareTo(T(java.math.BigDecimal).ZERO) >= 0} ? 'badge-green' : 'badge-red') : (${trade.status == 'PENDING_APPROVAL'} ? 'badge-yellow' : (${trade.status == 'EXECUTED'} ? 'badge-cyan' : 'badge-gray'))"
+                          th:text="${trade.status == 'PENDING_APPROVAL'} ? 'PENDING' : ${trade.status}">STATUS</span>
+                  </td>
+                  <td class="text-xs text-muted" th:text="${#temporals.format(trade.createdAt, 'MMM dd, HH:mm')}">Jan 01</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== EXPERT MODE ===== -->
+      <div id="expertMode" class="mode-panel" style="display:none;">
+        <!-- Full stats -->
+        <div class="stats-grid mb-4">
+          <div class="stat-card cyan-accent">
+            <div class="stat-label">Virtual Bankroll</div>
+            <div class="stat-value mono" th:text="'$' + ${#numbers.formatDecimal(summary.totalBankroll, 1, 2)}">$0.00</div>
+            <div class="stat-sub" th:text="'Started with $' + ${#numbers.formatDecimal(summary.initialDeposit, 1, 2)}"></div>
+          </div>
+          <div class="stat-card"
+               th:classappend="${summary.totalProfitLoss != null and summary.totalProfitLoss.compareTo(T(java.math.BigDecimal).ZERO) >= 0} ? 'green-accent' : 'red-accent'">
+            <div class="stat-label">Total P&amp;L</div>
+            <div class="stat-value mono"
+                 th:classappend="${summary.totalProfitLoss != null and summary.totalProfitLoss.compareTo(T(java.math.BigDecimal).ZERO) >= 0} ? 'pnl-pos' : 'pnl-neg'"
+                 th:text="${summary.totalProfitLoss != null} ? (${summary.totalProfitLoss.compareTo(T(java.math.BigDecimal).ZERO) >= 0} ? '+$' : '-$') + ${#numbers.formatDecimal(summary.totalProfitLoss.abs(), 1, 2)} : '$0.00'">$0.00</div>
+            <div class="stat-sub">Realized (closed trades)</div>
+          </div>
+          <div class="stat-card yellow-accent">
+            <div class="stat-label">Win Rate</div>
+            <div class="stat-value" th:text="${summary.winRate} + '%'">0%</div>
+            <div class="stat-sub" th:text="${summary.winningTrades} + ' wins / ' + ${summary.closedTrades} + ' closed'"></div>
+          </div>
+          <div class="stat-card purple-accent">
+            <div class="stat-label">Total Trades</div>
+            <div class="stat-value" th:text="${summary.totalTrades}">0</div>
+            <div class="stat-sub" th:text="${summary.pendingApprovalTrades} + ' awaiting approval'"></div>
+          </div>
+        </div>
+
+        <!-- Expert: AI Strategy Controls -->
+        <div class="card mb-4">
+          <div class="card-header">
+            <h3 class="card-title">
+              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="color:var(--accent)">
+                <circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/>
+              </svg>
+              AI Strategy Controls
+            </h3>
+            <span class="badge badge-cyan">Expert</span>
+          </div>
+          <div style="padding:18px;">
+            <div class="expert-grid">
+              <div class="expert-control">
+                <label class="expert-label">Active Strategy</label>
+                <select class="expert-select">
+                  <option>Momentum Trading</option>
+                  <option>Mean Reversion</option>
+                  <option>Trend Following</option>
+                  <option>Arbitrage Scanner</option>
+                  <option>Sentiment Analysis</option>
+                </select>
+              </div>
+              <div class="expert-control">
+                <label class="expert-label">Risk Level</label>
+                <select class="expert-select">
+                  <option>Conservative (1-2% per trade)</option>
+                  <option selected>Moderate (3-5% per trade)</option>
+                  <option>Aggressive (6-10% per trade)</option>
+                  <option>Max Risk (10%+)</option>
+                </select>
+              </div>
+              <div class="expert-control">
+                <label class="expert-label">Trade Frequency</label>
+                <select class="expert-select">
+                  <option>Low (1-3 trades/day)</option>
+                  <option selected>Medium (4-8 trades/day)</option>
+                  <option>High (8-15 trades/day)</option>
+                  <option>Scalping (15+/day)</option>
+                </select>
+              </div>
+              <div class="expert-control">
+                <label class="expert-label">Market Focus</label>
+                <select class="expert-select">
+                  <option>All Markets</option>
+                  <option>Crypto Only</option>
+                  <option>Stocks Only</option>
+                  <option>Polymarket Only</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Toggles -->
+            <div class="expert-toggles">
+              <div class="expert-toggle-item">
+                <div>
+                  <div class="expert-toggle-title">Auto-Approve High Confidence Trades</div>
+                  <div class="expert-toggle-desc">Automatically approve trades with &gt;85% confidence</div>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" checked/>
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              <div class="expert-toggle-item">
+                <div>
+                  <div class="expert-toggle-title">Stop-Loss Protection</div>
+                  <div class="expert-toggle-desc">Auto-close losing positions at -15%</div>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" checked/>
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              <div class="expert-toggle-item">
+                <div>
+                  <div class="expert-toggle-title">Sentiment Analysis Feed</div>
+                  <div class="expert-toggle-desc">Use social media sentiment in trade decisions</div>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox"/>
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              <div class="expert-toggle-item">
+                <div>
+                  <div class="expert-toggle-title">Backtesting Mode</div>
+                  <div class="expert-toggle-desc">Simulate strategy on historical data before live trading</div>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox"/>
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+            </div>
+
+            <div style="margin-top:14px;display:flex;gap:10px;">
+              <button class="btn btn-primary">Apply Strategy</button>
+              <button class="btn btn-ghost">Reset to Defaults</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Expert charts row -->
+        <div class="charts-row mb-4">
+          <div class="card chart-card">
+            <div class="card-header">
+              <h3 class="card-title">P&amp;L Performance</h3>
+              <div class="chart-range-btns">
+                <button class="chart-range-btn active" onclick="setRange(this,'7d')">7D</button>
+                <button class="chart-range-btn" onclick="setRange(this,'30d')">30D</button>
+                <button class="chart-range-btn" onclick="setRange(this,'90d')">90D</button>
+              </div>
+            </div>
+            <div style="padding:16px;"><canvas id="expertPnlChart" height="180"></canvas></div>
+          </div>
+          <div class="card chart-card">
+            <div class="card-header">
+              <h3 class="card-title">Market Allocation</h3>
+            </div>
+            <div style="padding:16px;display:flex;align-items:center;justify-content:center;height:220px;">
+              <canvas id="expertAllocationChart" width="200" height="200"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Expert: Confidence threshold slider -->
+        <div class="card mb-4">
+          <div class="card-header">
+            <h3 class="card-title">Graph & Display Settings</h3>
+          </div>
+          <div style="padding:18px;">
+            <div class="expert-grid">
+              <div class="expert-control">
+                <label class="expert-label">Confidence Threshold Display: <span id="confThreshVal" style="color:var(--accent)">70%</span></label>
+                <input type="range" min="0" max="100" value="70" class="expert-slider" oninput="document.getElementById('confThreshVal').textContent=this.value+'%'"/>
+              </div>
+              <div class="expert-control">
+                <label class="expert-label">Chart Smoothing: <span id="smoothVal" style="color:var(--accent)">Medium</span></label>
+                <input type="range" min="0" max="4" value="2" class="expert-slider" oninput="setSmoothLabel(this.value)"/>
+              </div>
+              <div class="expert-control">
+                <label class="expert-label">Max Trade Amount Cap ($)</label>
+                <input type="number" class="expert-input" value="500" min="10" step="10"/>
+              </div>
+              <div class="expert-control">
+                <label class="expert-label">Alert Threshold (P&amp;L %)</label>
+                <input type="number" class="expert-input" value="-10" min="-100" max="0"/>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent trades -->
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">Recent Trades</h3>
+            <a th:href="@{/trades}" class="btn btn-ghost btn-sm">View All →</a>
+          </div>
+          <div th:if="${#lists.isEmpty(summary.recentTrades)}" style="padding:40px;text-align:center;color:var(--muted);">
+            <div style="font-size:2.5rem;">📊</div><div style="font-weight:600;">No trades yet</div>
+          </div>
+          <div th:if="${not #lists.isEmpty(summary.recentTrades)}" class="table-wrap">
+            <table>
+              <thead><tr><th>Market</th><th>Type</th><th>Amount</th><th>Entry</th><th>Exit</th><th>P&amp;L</th><th>Confidence</th><th>Status</th><th>Date</th></tr></thead>
+              <tbody>
+                <tr th:each="trade : ${summary.recentTrades}">
+                  <td><div class="flex items-center gap-2">
+                    <span class="market-icon" th:classappend="${trade.marketType == 'CRYPTO'} ? 'crypto' : (${trade.marketType == 'STOCK'} ? 'stock' : 'poly')" th:text="${trade.marketType == 'CRYPTO'} ? '₿' : (${trade.marketType == 'STOCK'} ? '↗' : '◈')"></span>
+                    <span style="font-weight:600;" th:text="${trade.market}">BTC</span></div></td>
+                  <td><span class="badge" th:classappend="${trade.type == 'BUY'} ? 'badge-green' : 'badge-red'" th:text="${trade.type}">BUY</span></td>
+                  <td class="mono" th:text="'$' + ${#numbers.formatDecimal(trade.amount, 1, 2)}">$0</td>
+                  <td class="mono text-muted" th:text="${trade.entryPrice != null} ? '$' + ${#numbers.formatDecimal(trade.entryPrice, 1, 4)} : '—'">—</td>
+                  <td class="mono text-muted" th:text="${trade.exitPrice != null} ? '$' + ${#numbers.formatDecimal(trade.exitPrice, 1, 4)} : '—'">—</td>
+                  <td><span th:if="${trade.profitLoss != null}" th:classappend="${trade.profitLoss.compareTo(T(java.math.BigDecimal).ZERO) >= 0} ? 'pnl-pos' : 'pnl-neg'" th:text="${trade.profitLoss.compareTo(T(java.math.BigDecimal).ZERO) >= 0} ? '+$' + ${#numbers.formatDecimal(trade.profitLoss, 1, 2)} : '-$' + ${#numbers.formatDecimal(trade.profitLoss.abs(), 1, 2)}"></span><span th:if="${trade.profitLoss == null}" class="text-muted">Open</span></td>
+                  <td>
+                    <div class="confidence-mini" th:if="${trade.aiConfidence != null}">
+                      <div class="confidence-mini-bar" th:style="'width:' + ${trade.aiConfidence} + '%'"></div>
+                      <span class="text-xs mono" th:text="${trade.aiConfidence} + '%'">0%</span>
+                    </div>
+                    <span th:if="${trade.aiConfidence == null}" class="text-muted">—</span>
+                  </td>
+                  <td><span class="badge" th:classappend="${trade.status == 'CLOSED'} ? (${trade.profitLoss != null and trade.profitLoss.compareTo(T(java.math.BigDecimal).ZERO) >= 0} ? 'badge-green' : 'badge-red') : (${trade.status == 'PENDING_APPROVAL'} ? 'badge-yellow' : (${trade.status == 'EXECUTED'} ? 'badge-cyan' : 'badge-gray'))" th:text="${trade.status == 'PENDING_APPROVAL'} ? 'PENDING' : ${trade.status}">STATUS</span></td>
+                  <td class="text-xs text-muted" th:text="${#temporals.format(trade.createdAt, 'MMM dd, HH:mm')}">Jan 01</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== ANALYTICS SECTION (Training + Expert) ===== -->
+      <div id="analytics-section" class="mode-panel training-expert-only mt-4" style="display:none;">
+        <div class="analytics-header">
+          <h2 class="analytics-title">
+            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>
+              <line x1="6" y1="20" x2="6" y2="14"/>
+            </svg>
+            Analytics
+          </h2>
+          <div class="analytics-time-btns">
+            <button class="analytics-btn active" onclick="setAnalyticsRange(this,'7d')">7 Days</button>
+            <button class="analytics-btn" onclick="setAnalyticsRange(this,'30d')">30 Days</button>
+            <button class="analytics-btn" onclick="setAnalyticsRange(this,'90d')">90 Days</button>
+            <button class="analytics-btn" onclick="setAnalyticsRange(this,'1y')">1 Year</button>
+          </div>
+        </div>
+
+        <!-- Analytics KPI row -->
+        <div class="analytics-kpi-row mb-4">
+          <div class="analytics-kpi">
+            <div class="analytics-kpi-label">Best Day</div>
+            <div class="analytics-kpi-val pnl-pos">+$342.50</div>
+            <div class="analytics-kpi-sub">May 14, 2026</div>
+          </div>
+          <div class="analytics-kpi">
+            <div class="analytics-kpi-label">Worst Day</div>
+            <div class="analytics-kpi-val pnl-neg">-$187.20</div>
+            <div class="analytics-kpi-sub">May 9, 2026</div>
+          </div>
+          <div class="analytics-kpi">
+            <div class="analytics-kpi-label">Avg Daily Profit</div>
+            <div class="analytics-kpi-val pnl-pos">+$58.30</div>
+            <div class="analytics-kpi-sub">Last 30 days</div>
+          </div>
+          <div class="analytics-kpi">
+            <div class="analytics-kpi-label">Sharpe Ratio</div>
+            <div class="analytics-kpi-val" style="color:var(--accent)">1.84</div>
+            <div class="analytics-kpi-sub">Risk-adjusted return</div>
+          </div>
+          <div class="analytics-kpi">
+            <div class="analytics-kpi-label">Max Drawdown</div>
+            <div class="analytics-kpi-val pnl-neg">-12.3%</div>
+            <div class="analytics-kpi-sub">Peak to trough</div>
+          </div>
+        </div>
+
+        <!-- Main analytics chart -->
+        <div class="card mb-4">
+          <div class="card-header">
+            <h3 class="card-title">Daily Profit / Loss by Day</h3>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <div style="display:flex;align-items:center;gap:4px;font-size:0.75rem;color:var(--muted)"><div style="width:10px;height:10px;border-radius:2px;background:var(--green);opacity:0.8;"></div>Profit</div>
+              <div style="display:flex;align-items:center;gap:4px;font-size:0.75rem;color:var(--muted)"><div style="width:10px;height:10px;border-radius:2px;background:var(--red);opacity:0.8;"></div>Loss</div>
+            </div>
+          </div>
+          <div style="padding:16px;"><canvas id="dailyPnlChart" height="160"></canvas></div>
+        </div>
+
+        <!-- Second row: cumulative + trade volume -->
+        <div class="charts-row mb-4">
+          <div class="card chart-card">
+            <div class="card-header">
+              <h3 class="card-title">Cumulative Returns</h3>
+            </div>
+            <div style="padding:16px;"><canvas id="cumulativeChart" height="180"></canvas></div>
+          </div>
+          <div class="card chart-card">
+            <div class="card-header">
+              <h3 class="card-title">Trade Volume by Day</h3>
+            </div>
+            <div style="padding:16px;"><canvas id="volumeChart" height="180"></canvas></div>
+          </div>
+        </div>
+
+        <!-- Per-user analytics table -->
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">Performance by User</h3>
+            <span class="badge badge-gray">Fake Data Preview</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>User</th><th>Total Trades</th><th>Win Rate</th><th>Total P&amp;L</th><th>Best Day</th><th>Avg Trade Size</th><th>Trend</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td><div class="flex items-center gap-2"><div class="user-avatar" style="width:24px;height:24px;font-size:0.7rem;">A</div><span>alice</span></div></td>
+                  <td>142</td><td class="pnl-pos">68%</td><td class="pnl-pos">+$1,842.30</td><td class="pnl-pos">+$342.50</td><td class="mono">$87.40</td>
+                  <td><span class="trend-up">↑ +12%</span></td>
+                </tr>
+                <tr>
+                  <td><div class="flex items-center gap-2"><div class="user-avatar" style="width:24px;height:24px;font-size:0.7rem;background:linear-gradient(135deg,var(--purple),var(--blue));">B</div><span>bob</span></div></td>
+                  <td>89</td><td style="color:var(--yellow)">54%</td><td class="pnl-neg">-$214.60</td><td class="pnl-pos">+$120.00</td><td class="mono">$52.10</td>
+                  <td><span class="trend-down">↓ -4%</span></td>
+                </tr>
+                <tr>
+                  <td><div class="flex items-center gap-2"><div class="user-avatar" style="width:24px;height:24px;font-size:0.7rem;background:linear-gradient(135deg,var(--green),var(--accent));">C</div><span>carol</span></div></td>
+                  <td>211</td><td class="pnl-pos">72%</td><td class="pnl-pos">+$3,107.80</td><td class="pnl-pos">+$580.20</td><td class="mono">$124.30</td>
+                  <td><span class="trend-up">↑ +21%</span></td>
+                </tr>
+                <tr>
+                  <td><div class="flex items-center gap-2"><div class="user-avatar" style="width:24px;height:24px;font-size:0.7rem;background:linear-gradient(135deg,var(--orange),var(--red));">D</div><span>dave</span></div></td>
+                  <td>47</td><td style="color:var(--yellow)">51%</td><td class="pnl-pos">+$92.40</td><td class="pnl-pos">+$75.00</td><td class="mono">$38.80</td>
+                  <td><span class="trend-up">↑ +2%</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script>
+// ===== MODE MANAGEMENT =====
+const MODES = {
+  easy:     { icon: '🟢', label: 'Easy Mode' },
+  training: { icon: '🔵', label: 'Training Mode' },
+  expert:   { icon: '🔴', label: 'Expert Mode' }
+};
+
+function setMode(mode) {
+  localStorage.setItem('ntx_mode', mode);
+  applyMode(mode);
+  document.getElementById('modeDropdownMenu').style.display = 'none';
+}
+
+function applyMode(mode) {
+  // Update dropdown button
+  document.getElementById('modeIcon').textContent = MODES[mode].icon;
+  document.getElementById('modeLabel').textContent = mode.charAt(0).toUpperCase() + mode.slice(1);
+  document.getElementById('topbarModeIcon').textContent = MODES[mode].icon;
+  document.getElementById('topbarModeText').textContent = MODES[mode].label;
+
+  // Update active option
+  document.querySelectorAll('.mode-option').forEach(el => {
+    el.classList.toggle('active', el.dataset.mode === mode);
+  });
+
+  // Show/hide panels
+  document.getElementById('easyMode').style.display     = mode === 'easy'     ? '' : 'none';
+  document.getElementById('trainingMode').style.display = mode === 'training' ? '' : 'none';
+  document.getElementById('expertMode').style.display   = mode === 'expert'   ? '' : 'none';
+
+  // Analytics section: show for training + expert
+  const analytics = document.getElementById('analytics-section');
+  const showAnalytics = mode === 'training' || mode === 'expert';
+  analytics.style.display = showAnalytics ? '' : 'none';
+
+  // Analytics nav link visibility
+  document.getElementById('analyticsNavLink').style.display = showAnalytics ? '' : 'none';
+
+  // Re-render charts for the visible mode
+  if (mode === 'training' || mode === 'expert') renderAllCharts(mode);
+}
+
+// Dropdown toggle
+document.getElementById('modeDropdownBtn').addEventListener('click', function(e) {
+  e.stopPropagation();
+  const menu = document.getElementById('modeDropdownMenu');
+  menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+});
+document.addEventListener('click', () => {
+  document.getElementById('modeDropdownMenu').style.display = 'none';
+});
+
+// ===== CHART HELPERS =====
+function generateDailyData(days, baseVal, volatility, trend) {
+  const labels = [], data = [];
+  const now = new Date();
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    labels.push(d.toLocaleDateString('en-US', {month:'short', day:'numeric'}));
+    const noise = (Math.random() - 0.45) * volatility;
+    baseVal += trend + noise;
+    data.push(+baseVal.toFixed(2));
+  }
+  return { labels, data };
+}
+
+function generateBarData(days) {
+  const labels = [], profits = [], losses = [];
+  const now = new Date();
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    labels.push(d.toLocaleDateString('en-US', {month:'short', day:'numeric'}));
+    const v = (Math.random() - 0.38) * 200;
+    profits.push(v > 0 ? +v.toFixed(2) : 0);
+    losses.push(v < 0 ? +v.toFixed(2) : 0);
+  }
+  return { labels, profits, losses };
+}
+
+const chartInstances = {};
+function destroyChart(id) {
+  if (chartInstances[id]) { chartInstances[id].destroy(); delete chartInstances[id]; }
+}
+
+const chartDefaults = {
+  responsive: true,
+  maintainAspectRatio: true,
+  plugins: { legend: { display: false } },
+  scales: {
+    x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#7a839e', font: {size: 10}, maxRotation: 45 } },
+    y: { grid: { color: 'rgba(255,255,255,0.06)' }, ticks: { color: '#7a839e', font: {size: 10} } }
+  }
+};
+
+function renderAllCharts(mode) {
+  setTimeout(() => {
+    renderDailyPnlChart();
+    renderCumulativeChart();
+    renderVolumeChart();
+    if (mode === 'training') {
+      renderTrainingPnlChart();
+      renderTrainingWinLossChart();
+    }
+    if (mode === 'expert') {
+      renderExpertPnlChart();
+      renderExpertAllocationChart();
+    }
+  }, 50);
+}
+
+function renderTrainingPnlChart() {
+  destroyChart('trainingPnlChart');
+  const ctx = document.getElementById('trainingPnlChart');
+  if (!ctx) return;
+  const { labels, data } = generateDailyData(30, 1000, 60, 3);
+  chartInstances['trainingPnlChart'] = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{ data, fill: true, borderColor: '#22d3ee', backgroundColor: 'rgba(34,211,238,0.08)', tension: 0.4, pointRadius: 2, borderWidth: 2 }]
+    },
+    options: { ...chartDefaults }
+  });
+}
+
+function renderTrainingWinLossChart() {
+  destroyChart('trainingWinLossChart');
+  const ctx = document.getElementById('trainingWinLossChart');
+  if (!ctx) return;
+  chartInstances['trainingWinLossChart'] = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Wins', 'Losses', 'Open'],
+      datasets: [{ data: [63, 29, 8], backgroundColor: ['#10b981','#ef4444','#3b82f6'], borderWidth: 0, hoverOffset: 4 }]
+    },
+    options: { plugins: { legend: { display: true, position: 'bottom', labels: { color: '#7a839e', font: {size: 11}, padding: 12 } } }, cutout: '65%' }
+  });
+}
+
+function renderExpertPnlChart() {
+  destroyChart('expertPnlChart');
+  const ctx = document.getElementById('expertPnlChart');
+  if (!ctx) return;
+  const { labels, data } = generateDailyData(30, 1000, 70, 4);
+  chartInstances['expertPnlChart'] = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{ data, fill: true, borderColor: '#a855f7', backgroundColor: 'rgba(168,85,247,0.08)', tension: 0.4, pointRadius: 2, borderWidth: 2 }]
+    },
+    options: { ...chartDefaults }
+  });
+}
+
+function renderExpertAllocationChart() {
+  destroyChart('expertAllocationChart');
+  const ctx = document.getElementById('expertAllocationChart');
+  if (!ctx) return;
+  chartInstances['expertAllocationChart'] = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Crypto', 'Stocks', 'Polymarket'],
+      datasets: [{ data: [55, 30, 15], backgroundColor: ['#f59e0b','#3b82f6','#a855f7'], borderWidth: 0, hoverOffset: 4 }]
+    },
+    options: { plugins: { legend: { display: true, position: 'bottom', labels: { color: '#7a839e', font: {size: 11}, padding: 12 } } }, cutout: '65%' }
+  });
+}
+
+function renderDailyPnlChart() {
+  destroyChart('dailyPnlChart');
+  const ctx = document.getElementById('dailyPnlChart');
+  if (!ctx) return;
+  const { labels, profits, losses } = generateBarData(30);
+  chartInstances['dailyPnlChart'] = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Profit', data: profits, backgroundColor: 'rgba(16,185,129,0.75)', borderRadius: 3 },
+        { label: 'Loss', data: losses, backgroundColor: 'rgba(239,68,68,0.75)', borderRadius: 3 }
+      ]
+    },
+    options: { ...chartDefaults, plugins: { legend: { display: false } }, scales: { ...chartDefaults.scales, x: { ...chartDefaults.scales.x, stacked: false } } }
+  });
+}
+
+function renderCumulativeChart() {
+  destroyChart('cumulativeChart');
+  const ctx = document.getElementById('cumulativeChart');
+  if (!ctx) return;
+  const { labels, data } = generateDailyData(30, 10000, 80, 15);
+  chartInstances['cumulativeChart'] = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{ data, fill: true, borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.07)', tension: 0.4, pointRadius: 0, borderWidth: 2 }]
+    },
+    options: { ...chartDefaults }
+  });
+}
+
+function renderVolumeChart() {
+  destroyChart('volumeChart');
+  const ctx = document.getElementById('volumeChart');
+  if (!ctx) return;
+  const labels = [], data = [];
+  const now = new Date();
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date(now); d.setDate(d.getDate() - i);
+    labels.push(d.toLocaleDateString('en-US', {month:'short', day:'numeric'}));
+    data.push(Math.floor(Math.random() * 12) + 1);
+  }
+  chartInstances['volumeChart'] = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{ data, backgroundColor: 'rgba(59,130,246,0.7)', borderRadius: 3 }]
+    },
+    options: { ...chartDefaults }
+  });
+}
+
+function setRange(btn, range) {
+  document.querySelectorAll('.chart-range-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function setAnalyticsRange(btn, range) {
+  document.querySelectorAll('.analytics-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  // Re-render with different day counts
+  const days = {7: 7, 30: 30, 90: 90, '1y': 90}[range] || 30;
+  renderDailyPnlChart();
+  renderCumulativeChart();
+  renderVolumeChart();
+}
+
+function setSmoothLabel(v) {
+  const labels = ['None','Low','Medium','High','Max'];
+  document.getElementById('smoothVal').textContent = labels[v] || 'Medium';
+}
+
+// ===== SIDEBAR =====
+const sidebar = document.getElementById('sidebar');
+const overlay = document.getElementById('sidebarOverlay');
+const btn = document.getElementById('hamburgerBtn');
+function toggleSidebar() { sidebar.classList.toggle('open'); overlay.classList.toggle('active'); }
+btn && btn.addEventListener('click', toggleSidebar);
+overlay && overlay.addEventListener('click', toggleSidebar);
+
+// ===== INIT =====
+const savedMode = localStorage.getItem('ntx_mode') || 'easy';
+applyMode(savedMode);
+</script>
+</body>
+</html>

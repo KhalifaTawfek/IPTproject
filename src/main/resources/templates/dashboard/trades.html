@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Trade History — Nexus TradeX</title>
+  <link rel="stylesheet" th:href="@{/css/app.css}"/>
+</head>
+<body>
+<div class="layout">
+
+  <div class="mobile-topbar">
+    <button class="hamburger" id="hamburgerBtn" aria-label="Open menu">
+      <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+      </svg>
+    </button>
+    <span class="mobile-logo">Trade History</span>
+    <span class="text-xs text-muted mono" th:text="${#lists.size(trades)} + ' trades'"></span>
+  </div>
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-text">⬡ Nexus TradeX</div>
+      <div class="logo-sub">Simulated Trading Platform</div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Main</div>
+      <a th:href="@{/dashboard}" class="nav-link">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+          <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+        </svg>Dashboard
+      </a>
+      <a th:href="@{/trades}" class="nav-link active">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+        </svg>Trade History
+      </a>
+      <a th:href="@{/agent/settings}" class="nav-link">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/>
+        </svg>Agent Settings
+      </a>
+      <div class="nav-section-label" sec:authorize="hasRole('ADMIN')">Admin</div>
+      <a th:href="@{/admin}" class="nav-link" sec:authorize="hasRole('ADMIN')">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>User Management
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-chip">
+        <div class="user-avatar" th:text="${#strings.substring(user.username,0,1).toUpperCase()}">A</div>
+        <div>
+          <div class="user-name" th:text="${user.username}">username</div>
+          <div class="user-role" th:text="${user.role}">ROLE</div>
+        </div>
+      </div>
+      <a th:href="@{/auth/logout}" class="btn btn-ghost" style="width:100%;margin-top:10px;justify-content:center;">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+          <polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+        </svg>Sign Out
+      </a>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <div class="topbar-title">Trade History</div>
+        <div class="text-xs text-muted" th:text="${#lists.size(trades)} + ' total trades'"></div>
+      </div>
+      <div class="topbar-actions">
+        <div class="agent-status" th:if="${agentStatus != null}">
+          <span class="status-dot"
+                th:classappend="${agentStatus == 'ACTIVE'} ? 'active' : (${agentStatus == 'PAUSED'} ? 'paused' : 'disconnected')"></span>
+          <span th:text="${agentStatus}">ACTIVE</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-content fade-in">
+      <div class="page-header">
+        <h1>All Trades</h1>
+        <p>Complete record of every trade suggested or executed by your AI agent</p>
+      </div>
+
+      <!-- Empty state -->
+      <div th:if="${#lists.isEmpty(trades)}" class="card" style="padding:48px;text-align:center;">
+        <div style="font-size:3rem;margin-bottom:12px;">📈</div>
+        <div style="font-weight:700;font-size:1.1rem;margin-bottom:6px;">No trades yet</div>
+        <div class="text-muted">Connect your agent and start trading to see history here.</div>
+        <a th:href="@{/agent/settings}" class="btn btn-primary" style="margin-top:16px;">Connect Agent</a>
+      </div>
+
+      <div th:if="${not #lists.isEmpty(trades)}">
+        <!-- Desktop table -->
+        <div class="card table-wrap" style="display:block;">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th><th>Market</th><th>Type</th><th>Category</th>
+                <th>Amount</th><th>Entry</th><th>Exit</th><th>P&amp;L</th>
+                <th>Confidence</th><th>Status</th><th>Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr th:each="trade : ${trades}">
+                <td class="text-xs text-muted mono" th:text="${trade.id}">#</td>
+                <td>
+                  <div class="flex items-center gap-2">
+                    <span class="market-icon"
+                          th:classappend="${trade.marketType == 'CRYPTO'} ? 'crypto' : (${trade.marketType == 'STOCK'} ? 'stock' : 'poly')"
+                          th:text="${trade.marketType == 'CRYPTO'} ? '₿' : (${trade.marketType == 'STOCK'} ? '↗' : '◈')"></span>
+                    <div>
+                      <div style="font-weight:600;font-size:0.85rem;" th:text="${trade.market}">BTC/USD</div>
+                      <div class="text-xs text-muted" th:if="${trade.aiReason}"
+                           th:text="${#strings.abbreviate(trade.aiReason, 45)}">reason...</div>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="badge" th:classappend="${trade.type == 'BUY'} ? 'badge-green' : 'badge-red'" th:text="${trade.type}">BUY</span></td>
+                <td>
+                  <span class="badge"
+                        th:classappend="${trade.marketType == 'CRYPTO'} ? 'badge-yellow' : (${trade.marketType == 'STOCK'} ? 'badge-cyan' : 'badge-purple')"
+                        th:text="${trade.marketType}">CRYPTO</span>
+                </td>
+                <td class="mono" th:text="'$' + ${#numbers.formatDecimal(trade.amount, 1, 2)}">$0</td>
+                <td class="mono text-muted" th:text="${trade.entryPrice != null} ? '$' + ${#numbers.formatDecimal(trade.entryPrice, 1, 4)} : '—'">—</td>
+                <td class="mono text-muted" th:text="${trade.exitPrice != null} ? '$' + ${#numbers.formatDecimal(trade.exitPrice, 1, 4)} : '—'">—</td>
+                <td>
+                  <span th:if="${trade.profitLoss != null}"
+                        th:classappend="${trade.profitLoss.compareTo(T(java.math.BigDecimal).ZERO) >= 0} ? 'pnl-pos' : 'pnl-neg'"
+                        th:text="${trade.profitLoss.compareTo(T(java.math.BigDecimal).ZERO) >= 0} ? '+$' + ${#numbers.formatDecimal(trade.profitLoss, 1, 2)} : '-$' + ${#numbers.formatDecimal(trade.profitLoss.abs(), 1, 2)}">
+                  </span>
+                  <span th:if="${trade.profitLoss == null}" class="text-muted">Open</span>
+                </td>
+                <td>
+                  <div class="confidence-bar" th:if="${trade.aiConfidence != null}">
+                    <div class="confidence-track">
+                      <div class="confidence-fill" th:style="'width:' + ${trade.aiConfidence} + '%'"></div>
+                    </div>
+                    <span class="text-xs mono" th:text="${trade.aiConfidence} + '%'">0%</span>
+                  </div>
+                  <span th:if="${trade.aiConfidence == null}" class="text-muted">—</span>
+                </td>
+                <td>
+                  <span class="badge"
+                        th:classappend="${trade.status == 'CLOSED'} ? (${trade.profitLoss != null and trade.profitLoss.compareTo(T(java.math.BigDecimal).ZERO) >= 0} ? 'badge-green' : 'badge-red') : (${trade.status == 'PENDING_APPROVAL'} ? 'badge-yellow' : (${trade.status == 'EXECUTED'} ? 'badge-cyan' : (${trade.status == 'APPROVED'} ? 'badge-blue' : 'badge-gray')))"
+                        th:text="${trade.status == 'PENDING_APPROVAL'} ? 'PENDING' : ${trade.status}">STATUS</span>
+                </td>
+                <td class="text-xs text-muted" th:text="${#temporals.format(trade.createdAt, 'MMM dd, HH:mm')}">Jan 01</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Mobile card view -->
+        <div class="trade-cards">
+          <div th:each="trade : ${trades}" class="trade-card-item">
+            <div class="trade-card-header">
+              <div class="flex items-center gap-2">
+                <span class="market-icon"
+                      th:classappend="${trade.marketType == 'CRYPTO'} ? 'crypto' : (${trade.marketType == 'STOCK'} ? 'stock' : 'poly')"
+                      th:text="${trade.marketType == 'CRYPTO'} ? '₿' : (${trade.marketType == 'STOCK'} ? '↗' : '◈')"></span>
+                <div>
+                  <div style="font-weight:700;font-size:0.875rem;" th:text="${trade.market}">BTC/USD</div>
+                  <div class="text-xs text-muted" th:text="${#temporals.format(trade.createdAt, 'MMM dd, yyyy')}"></div>
+                </div>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="badge" th:classappend="${trade.type == 'BUY'} ? 'badge-green' : 'badge-red'" th:text="${trade.type}">BUY</span>
+                <span class="badge"
+                      th:classappend="${trade.status == 'CLOSED'} ? (${trade.profitLoss != null and trade.profitLoss.compareTo(T(java.math.BigDecimal).ZERO) >= 0} ? 'badge-green' : 'badge-red') : (${trade.status == 'PENDING_APPROVAL'} ? 'badge-yellow' : (${trade.status == 'EXECUTED'} ? 'badge-cyan' : 'badge-gray'))"
+                      th:text="${trade.status == 'PENDING_APPROVAL'} ? 'PENDING' : ${trade.status}">STATUS</span>
+              </div>
+            </div>
+            <div class="trade-card-body">
+              <div class="trade-card-field"><span class="label">Amount</span><span class="val mono" th:text="'$' + ${#numbers.formatDecimal(trade.amount, 1, 2)}">$0</span></div>
+              <div class="trade-card-field">
+                <span class="label">P&amp;L</span>
+                <span th:if="${trade.profitLoss != null}"
+                      th:classappend="${trade.profitLoss.compareTo(T(java.math.BigDecimal).ZERO) >= 0} ? 'pnl-pos' : 'pnl-neg'"
+                      th:text="${trade.profitLoss.compareTo(T(java.math.BigDecimal).ZERO) >= 0} ? '+$' + ${#numbers.formatDecimal(trade.profitLoss, 1, 2)} : '-$' + ${#numbers.formatDecimal(trade.profitLoss.abs(), 1, 2)}"></span>
+                <span th:if="${trade.profitLoss == null}" class="text-muted val">Open</span>
+              </div>
+              <div class="trade-card-field"><span class="label">Entry</span><span class="val mono" th:text="${trade.entryPrice != null} ? '$' + ${#numbers.formatDecimal(trade.entryPrice, 1, 2)} : '—'">—</span></div>
+              <div class="trade-card-field"><span class="label">Type</span><span class="val">
+                <span class="badge"
+                      th:classappend="${trade.marketType == 'CRYPTO'} ? 'badge-yellow' : (${trade.marketType == 'STOCK'} ? 'badge-cyan' : 'badge-purple')"
+                      th:text="${trade.marketType}">CRYPTO</span>
+              </span></div>
+              <div class="trade-card-field" th:if="${trade.aiConfidence != null}" style="grid-column:1/-1;">
+                <span class="label">AI Confidence</span>
+                <div class="confidence-bar" style="margin-top:4px;">
+                  <div class="confidence-track" style="flex:1;">
+                    <div class="confidence-fill" th:style="'width:' + ${trade.aiConfidence} + '%'"></div>
+                  </div>
+                  <span class="text-xs mono" th:text="${trade.aiConfidence} + '%'">0%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+<script>
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('sidebarOverlay');
+  const btn = document.getElementById('hamburgerBtn');
+  function toggleSidebar() { sidebar.classList.toggle('open'); overlay.classList.toggle('active'); }
+  btn && btn.addEventListener('click', toggleSidebar);
+  overlay && overlay.addEventListener('click', toggleSidebar);
+</script>
+</body>
+</html>

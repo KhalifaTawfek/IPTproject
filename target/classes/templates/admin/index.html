@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Panel — Nexus TradeX</title>
+  <link rel="stylesheet" th:href="@{/css/app.css}"/>
+</head>
+<body>
+<div class="layout">
+
+  <div class="mobile-topbar">
+    <button class="hamburger" id="hamburgerBtn"><svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+    <span class="mobile-logo">⬡ Admin Panel</span>
+    <span class="badge badge-purple">ADMIN</span>
+  </div>
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo"><div class="logo-text">⬡ Nexus TradeX</div><div class="logo-sub">Simulated Trading Platform</div></div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Main</div>
+      <a th:href="@{/dashboard}" class="nav-link"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Dashboard</a>
+      <a th:href="@{/trades}" class="nav-link"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Trade History</a>
+      <a th:href="@{/agent/settings}" class="nav-link"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>Agent Settings</a>
+      <div class="nav-section-label">Admin</div>
+      <a th:href="@{/admin}" class="nav-link active"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>User Management</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-chip">
+        <div class="user-avatar" style="background:linear-gradient(135deg,var(--purple),var(--blue));">A</div>
+        <div><div class="user-name">admin</div><div class="user-role">ADMIN</div></div>
+      </div>
+      <a th:href="@{/auth/logout}" class="btn btn-ghost" style="width:100%;margin-top:10px;justify-content:center;">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Sign Out
+      </a>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div class="topbar-title">Admin Panel</div>
+      <span class="badge badge-purple">ADMINISTRATOR</span>
+    </div>
+
+    <div class="page-content fade-in">
+      <div th:if="${message}" class="alert alert-success" th:text="${message}"></div>
+
+      <!-- Platform Stats -->
+      <div class="stats-grid mb-4">
+        <div class="stat-card cyan-accent">
+          <div class="stat-label">Total Users</div>
+          <div class="stat-value" th:text="${totalUsers}">0</div>
+          <div class="stat-sub">Registered accounts</div>
+        </div>
+        <div class="stat-card green-accent">
+          <div class="stat-label">Active Agents</div>
+          <div class="stat-value" th:text="${activeAgents}">0</div>
+          <div class="stat-sub">Currently trading</div>
+        </div>
+        <div class="stat-card yellow-accent">
+          <div class="stat-label">Pending Approvals</div>
+          <div class="stat-value" th:text="${pendingCount}">0</div>
+          <div class="stat-sub">Across all users</div>
+        </div>
+      </div>
+
+      <!-- Users Table -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h3 class="card-title">All Users</h3>
+          <span class="badge badge-gray" th:text="${totalUsers} + ' accounts'">0</span>
+        </div>
+        <div class="table-wrap admin-table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>User</th><th>Email</th><th>Role</th><th>Agent</th>
+                <th>Status</th><th>Bankroll</th><th>Account</th><th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr th:each="u : ${users}">
+                <td>
+                  <div class="flex items-center gap-2">
+                    <div class="user-avatar" style="width:28px;height:28px;font-size:0.7rem;"
+                         th:text="${#strings.substring(u.username,0,1).toUpperCase()}">A</div>
+                    <span style="font-weight:600;" th:text="${u.username}">username</span>
+                  </div>
+                </td>
+                <td class="text-muted text-sm" th:text="${u.email}">email</td>
+                <td>
+                  <span class="badge" th:classappend="${u.role.name() == 'ADMIN'} ? 'badge-purple' : 'badge-cyan'"
+                        th:text="${u.role}">ROLE</span>
+                </td>
+                <td class="text-sm" th:text="${u.agent != null} ? ${u.agent.name} : '—'">Agent</td>
+                <td>
+                  <span th:if="${u.agent != null}" class="agent-status">
+                    <span class="status-dot"
+                          th:classappend="${u.agent.status.name() == 'ACTIVE'} ? 'active' : (${u.agent.status.name() == 'PAUSED'} ? 'paused' : 'disconnected')"></span>
+                    <span class="mono text-xs" th:text="${u.agent.status}">STATUS</span>
+                  </span>
+                  <span th:if="${u.agent == null}" class="text-muted">—</span>
+                </td>
+                <td class="mono text-sm"
+                    th:text="${u.agent != null} ? '$' + ${#numbers.formatDecimal(u.agent.bankroll, 1, 2)} : '—'">$0</td>
+                <td>
+                  <span class="badge" th:classappend="${u.enabled} ? 'badge-green' : 'badge-red'"
+                        th:text="${u.enabled} ? 'ACTIVE' : 'DISABLED'">ACTIVE</span>
+                </td>
+                <td>
+                  <div class="flex gap-2" style="flex-wrap:wrap;">
+                    <form th:action="@{/admin/users/{id}/toggle(id=${u.id})}" method="post">
+                      <button type="submit" class="btn btn-sm"
+                              th:classappend="${u.enabled} ? 'btn-danger' : 'btn-success'"
+                              th:text="${u.enabled} ? 'Disable' : 'Enable'">Toggle</button>
+                    </form>
+                    <form th:if="${u.agent != null}" th:action="@{/admin/agents/{id}/toggle(id=${u.agent.id})}" method="post">
+                      <button type="submit" class="btn btn-ghost btn-sm"
+                              th:text="${u.agent.status.name() == 'ACTIVE'} ? 'Pause' : 'Activate'">Toggle</button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Pending Trades Platform-Wide -->
+      <div class="card" th:if="${not #lists.isEmpty(pendingTrades)}">
+        <div class="card-header">
+          <h3 class="card-title">
+            Platform-Wide Pending Approvals
+            <span class="badge badge-yellow" style="margin-left:8px;" th:text="${pendingCount}">0</span>
+          </h3>
+        </div>
+        <div class="table-wrap admin-table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Agent</th><th>Market</th><th>Type</th><th>Amount</th>
+                <th>AI Confidence</th><th>Reason</th><th>Created</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr th:each="trade : ${pendingTrades}">
+                <td class="text-sm mono" th:text="${trade.agent.name}">Agent</td>
+                <td>
+                  <div class="flex items-center gap-2">
+                    <span class="market-icon"
+                          th:classappend="${trade.marketType.name() == 'CRYPTO'} ? 'crypto' : (${trade.marketType.name() == 'STOCK'} ? 'stock' : 'poly')"
+                          th:text="${trade.marketType.name() == 'CRYPTO'} ? '₿' : (${trade.marketType.name() == 'STOCK'} ? '↗' : '◈')"></span>
+                    <span style="font-weight:600;" th:text="${trade.market}">BTC</span>
+                  </div>
+                </td>
+                <td><span class="badge" th:classappend="${trade.type.name() == 'BUY'} ? 'badge-green' : 'badge-red'" th:text="${trade.type}">BUY</span></td>
+                <td class="mono" th:text="'$' + ${#numbers.formatDecimal(trade.amount, 1, 2)}">$0</td>
+                <td>
+                  <div class="confidence-bar">
+                    <div class="confidence-track"><div class="confidence-fill" th:style="'width:' + ${trade.aiConfidence} + '%'"></div></div>
+                    <span class="text-xs mono" th:text="${trade.aiConfidence} + '%'">0%</span>
+                  </div>
+                </td>
+                <td class="text-xs text-muted" th:text="${#strings.abbreviate(trade.aiReason, 60)}">reason</td>
+                <td class="text-xs text-muted" th:text="${#temporals.format(trade.createdAt, 'MMM dd, HH:mm')}">Jan 01</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card" th:if="${#lists.isEmpty(pendingTrades)}"
+           style="border-color:rgba(16,185,129,0.3);text-align:center;padding:32px;">
+        <div style="font-size:2rem;margin-bottom:8px;">✓</div>
+        <div style="color:var(--green);font-weight:600;">No pending approvals platform-wide</div>
+        <div class="text-muted text-sm" style="margin-top:4px;">All trade suggestions have been reviewed</div>
+      </div>
+    </div>
+  </main>
+</div>
+<script>
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('sidebarOverlay');
+  const btn = document.getElementById('hamburgerBtn');
+  function toggleSidebar() { sidebar.classList.toggle('open'); overlay.classList.toggle('active'); }
+  btn && btn.addEventListener('click', toggleSidebar);
+  overlay && overlay.addEventListener('click', toggleSidebar);
+</script>
+</body>
+</html>

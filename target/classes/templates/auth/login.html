@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sign In — Nexus TradeX</title>
+  <link rel="stylesheet" th:href="@{/css/app.css}"/>
+</head>
+<body>
+<div class="auth-page">
+  <div class="auth-card fade-in">
+    <div class="auth-logo">
+      <div class="logo-text">⬡ Nexus TradeX</div>
+      <div class="logo-sub">Simulated AI Trading Platform</div>
+    </div>
+
+    <div class="auth-title">Welcome back</div>
+    <div class="auth-sub">Sign in to monitor your AI trading agent</div>
+
+    <div th:if="${error}" class="alert alert-error" th:text="${error}"></div>
+    <div th:if="${message}" class="alert alert-success" th:text="${message}"></div>
+
+    <form th:action="@{/auth/login}" method="post">
+      <div class="form-group">
+        <label for="username">Username</label>
+        <input type="text" id="username" name="username" placeholder="Enter your username" required autofocus/>
+      </div>
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" placeholder="Enter your password" required/>
+      </div>
+      <button type="submit" class="btn btn-primary w-full" style="margin-top:4px;">Sign In</button>
+    </form>
+
+    <div class="auth-footer">
+      Don't have an account? <a th:href="@{/auth/register}">Create one</a>
+    </div>
+
+    <div class="demo-grid">
+      <div style="font-size:0.68rem;color:var(--muted2);text-transform:uppercase;letter-spacing:0.8px;font-weight:600;margin-bottom:2px;">Demo Accounts</div>
+      <div class="demo-cred"><span><strong>admin</strong> / admin123</span><span style="color:var(--purple);">ADMIN</span></div>
+      <div class="demo-cred"><span><strong>alex</strong> / password123</span><span style="color:var(--green);">AUTO-EXECUTE</span></div>
+      <div class="demo-cred"><span><strong>sara</strong> / password123</span><span style="color:var(--yellow);">MANUAL APPROVAL</span></div>
+      <div class="demo-cred"><span><strong>elena</strong> / password123</span><span style="color:var(--accent);">ACTIVE</span></div>
+      <div class="demo-cred"><span><strong>marco</strong> / password123</span><span style="color:var(--red);">PAUSED</span></div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

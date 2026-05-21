@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Register — Nexus TradeX</title>
+  <link rel="stylesheet" th:href="@{/css/app.css}"/>
+</head>
+<body>
+<div class="auth-page">
+  <div class="auth-card fade-in">
+    <div class="auth-logo">
+      <div class="logo-text">⬡ Nexus TradeX</div>
+      <div class="logo-sub">Simulated AI Trading Platform</div>
+    </div>
+
+    <div class="auth-title">Create account</div>
+    <div class="auth-sub">Start with $1,000 virtual bankroll — no real money</div>
+
+    <div th:if="${error}" class="alert alert-error" th:text="${error}"></div>
+
+    <form th:action="@{/auth/register}" method="post">
+      <div class="form-group">
+        <label for="username">Username</label>
+        <input type="text" id="username" name="username" placeholder="Choose a username" required autofocus/>
+      </div>
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" placeholder="your@email.com" required/>
+      </div>
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" placeholder="Min. 8 characters" required/>
+      </div>
+      <div class="form-group">
+        <label for="confirmPassword">Confirm Password</label>
+        <input type="password" id="confirmPassword" name="confirmPassword" placeholder="Repeat your password" required/>
+      </div>
+      <button type="submit" class="btn btn-primary w-full">Create Account</button>
+    </form>
+
+    <div class="auth-footer">
+      Already have an account? <a th:href="@{/auth/login}">Sign in</a>
+    </div>
+  </div>
+</div>
+</body>
+</html>
